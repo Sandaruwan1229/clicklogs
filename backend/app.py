@@ -3,10 +3,13 @@ Tap experiment backend — Flask app hosted on Render (free tier).
 
 Receives POST data from the frontend and saves each tap record
 to Firebase Firestore collection 'tap_logs'.
+
+Document ID format : {sessionId}_{tapNumber}  e.g. "abc123_1"
 """
 
 import json
 import os
+from datetime import datetime, timezone
 from flask import Flask, request
 from flask_cors import CORS
 import firebase_admin
@@ -26,6 +29,11 @@ firebase_admin.initialize_app(cred)
 db = firestore.client()
 
 
+def ms_to_datetime(ms):
+    """Convert a JavaScript millisecond timestamp to a UTC datetime."""
+    return datetime.fromtimestamp(ms / 1000.0, tz=timezone.utc)
+
+
 @app.route("/saveTaps", methods=["POST"])
 def save_taps():
     """
@@ -35,37 +43,42 @@ def save_taps():
         taps = JSON array of tap objects
     """
     try:
-        # a. Tap sequence number  b. timestamps  c. interface  d. session  e. platform
         session_id      = request.form.get("id",   "unknown")
         device_platform = request.form.get("var",  "unknown")
         taps_raw        = request.form.get("taps", "[]")
 
         taps_list = json.loads(taps_raw)
 
+        # Normalise devicePlatform to "Android" or "PC"
+        platform_map = {"android": "Android", "pc": "PC"}
+        device_platform = platform_map.get(device_platform.lower(), device_platform.capitalize())
+
         batch = db.batch()
 
         for tap in taps_list:
-            start_ts = tap.get("startTimestamp", 0)
-            end_ts   = tap.get("endTimestamp",   0)
+            start_ms = tap.get("startTimestamp", 0)
+            end_ms   = tap.get("endTimestamp",   0)
+            tap_num  = tap.get("tapSequenceNumber", 0)
+
+            # Map "feedbackshown" → "feedback", keep "nofeedback" as-is
+            raw_interface = tap.get("interface", "")
+            interface_type = "feedback" if raw_interface == "feedbackshown" else "nofeedback"
+
+            # Document ID: {sessionId}_{tapNumber}
+            doc_id  = f"{session_id}_{tap_num}"
+            doc_ref = db.collection("tap_logs").document(doc_id)
 
             record = {
-                # a. Tap sequence number
-                "tapSequenceNumber": tap.get("tapSequenceNumber"),
-                # b. Start / end timestamps (ms since Unix epoch)
-                "startTimestamp":    start_ts,
-                "endTimestamp":      end_ts,
-                # Derived: duration stored for easy querying
-                "tapDuration":       end_ts - start_ts,
-                # c. Interface type
-                "interface":         tap.get("interface"),        # 'feedbackshown' or 'nofeedback'
-                "interfaceSequence": tap.get("interfaceSequence"),
-                # d. Session identifier
-                "sessionId":         session_id,
-                # e. Device platform
-                "devicePlatform":    device_platform,             # 'android' or 'pc'
+                "sessionId":       session_id,
+                "tapNumber":       tap_num,
+                "startTimestamp":  ms_to_datetime(start_ms),   # stored as Firestore Timestamp
+                "endTimestamp":    ms_to_datetime(end_ms),      # stored as Firestore Timestamp
+                "duration":        end_ms - start_ms,           # ms
+                "interfaceType":   interface_type,              # "feedback" or "nofeedback"
+                "devicePlatform":  device_platform,             # "Android" or "PC"
+                "serverTimestamp": firestore.SERVER_TIMESTAMP,  # time of save on server
             }
 
-            doc_ref = db.collection("tap_logs").document()
             batch.set(doc_ref, record)
 
         batch.commit()
