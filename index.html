@@ -201,15 +201,13 @@
 								document.getElementById("counter").innerHTML = '<span class="spanWhite">Mean tap duration: <span class="spanTime">'+Math.round(meanTouchDuration,2)+'</span> ms</span>';
 								document.getElementById("continue").style.display="block";
 								document.getElementById("tapHere").style.display="none";
-								//console.log(tapLogsArray.toString());
-								//syncToServer();
+								syncToServer(); // Save round 1 immediately so dropoffs are recorded
 
 							}else{
-							
+
 								document.getElementById("counter").innerHTML = '<span class="spanWhite">Mean tap duration: <span class="spanTime">'+Math.round(meanTouchDuration,2)+'</span> ms</span>';
 								document.getElementById("tapHere").style.display="none";
-								//console.log(tapLogsArray.toString());
-								syncToServer();
+								syncToServer(); // Save round 2
 							}
 
 							return;
@@ -245,6 +243,7 @@
 				endTap = 0;
 				tapCounter = 0;
 				totalTouchDuration = 0;
+				tapLogsArray = []; // Clear so round 2 taps are not re-sent with round 1
 				document.getElementById("tapHere").style.display="block";
 				document.getElementById("continue").style.display="none";
 				document.getElementById("counter").innerHTML="";
