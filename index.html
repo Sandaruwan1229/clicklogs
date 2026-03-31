@@ -201,8 +201,8 @@
 								document.getElementById("counter").innerHTML = '<span class="spanWhite">Mean tap duration: <span class="spanTime">'+Math.round(meanTouchDuration,2)+'</span> ms</span>';
 								document.getElementById("continue").style.display="block";
 								document.getElementById("tapHere").style.display="none";
-								syncToServer(); // Save round 1 immediately so dropoffs are recorded
-
+								//console.log(tapLogsArray.toString());
+								//syncToServer();
 							}else{
 
 								document.getElementById("counter").innerHTML = '<span class="spanWhite">Mean tap duration: <span class="spanTime">'+Math.round(meanTouchDuration,2)+'</span> ms</span>';

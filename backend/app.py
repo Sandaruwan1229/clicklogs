@@ -65,8 +65,8 @@ def save_taps():
             interface_type = "feedback" if raw_interface == "feedbackshown" else "nofeedback"
 
             # Document ID: {sessionId}_{tapNumber}
-            doc_id  = f"{session_id}_{tap_num}"
-            doc_ref = db.collection("tap_logs").document(doc_id)
+            # doc_id  = f"{session_id}_{tap_num}"
+            doc_ref = db.collection("tap_logs").document()
 
             record = {
                 "sessionId":       session_id,
