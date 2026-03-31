@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: clicklogs-backend
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    plan: free
+    envVars:
+      - key: FIREBASE_SERVICE_ACCOUNT
+        sync: false   # You will paste this value manually in the Render dashboard
